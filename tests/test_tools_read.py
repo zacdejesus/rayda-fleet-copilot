@@ -116,3 +116,12 @@ def test_every_row_snapshot_id_exists_in_the_data():
 def test_all_tool_outputs_are_json_serialisable():
     for output in _all_tool_outputs():
         json.dumps(output)
+
+
+def test_cross_tenant_and_unknown_look_identical():
+    """The model cannot tell 'exists in another company' from 'does not exist'."""
+    with pytest.raises(AccessDenied) as other_tenant:
+        get_device("acme-001", "I3JLKILKQTAC")
+    with pytest.raises(NotFound) as unknown:
+        get_device("acme-001", "NOPE")
+    assert str(other_tenant.value) == str(unknown.value)

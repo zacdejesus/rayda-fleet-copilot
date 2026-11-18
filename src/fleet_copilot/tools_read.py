@@ -34,6 +34,9 @@ TIMESERIES_METRICS = (
 BATTERY_METRICS = {"battery_cycle_count", "battery_full_charge_capacity", "battery_condition"}
 
 
+NOT_AVAILABLE = "Device not found for this company."
+
+
 class AccessDenied(Exception):
     """The device exists but belongs to another company."""
 
@@ -88,9 +91,12 @@ def _device_history(company_id: str, device_id: str) -> list[dict[str, Any]]:
     snapshots = load_snapshots()
     device = snapshots[snapshots["device_id"] == device_id]
     if device.empty:
-        raise NotFound(f"No device with id {device_id}.")
+        raise NotFound(NOT_AVAILABLE)
     if device["company_id"].iloc[0] != company_id:
-        raise AccessDenied("Device is not available for this company.")
+        # Same message as NotFound on purpose: the model must not learn that the
+        # id exists in another tenant. The exception type differs so the audit
+        # log can still record a cross-tenant attempt.
+        raise AccessDenied(NOT_AVAILABLE)
     return device.sort_values("collected_at").to_dict("records")
 
 
