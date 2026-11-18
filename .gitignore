@@ -1,8 +1,38 @@
-.venv/
-__pycache__/
-.pytest_cache/
+# --- Secrets ---
 .env
-outbox/*.jsonl
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# --- Virtual environment (uv) ---
+.venv/
+
+# --- Test, coverage and tooling caches ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Runtime output of the agent (regenerated on every run) ---
 audit.jsonl
+outbox/*.jsonl
 evals/report.json
+evals/runs/
+
+# --- Editors and OS ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Personal notes (not part of the submission) ---
 NOTAS-ENTREVISTA.md
