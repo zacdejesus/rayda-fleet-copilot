@@ -309,7 +309,8 @@ def detect_compliance_drift(company_id: str) -> Result:
                         history,
                         "drift",
                         f"{check_id} passed on {first_snap['collected_at'].date().isoformat()} "
-                        f"and has failed since {first_fail_snap['collected_at'].date().isoformat()}.",
+                        f"first failed on {first_fail_snap['collected_at'].date().isoformat()} "
+                        f"and is failing in the latest snapshot ({fail_share:.0%} of snapshots failing).",
                         "The device was compliant and has regressed, so a setting or policy changed on it.",
                         {
                             "check_id": check_id,
