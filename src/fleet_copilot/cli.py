@@ -16,14 +16,6 @@ def _companies() -> list[str]:
     return sorted(load_snapshots()["company_id"].unique())
 
 
-def _text(message) -> str:
-    """The text blocks of an AI message, ignoring thinking and tool-use blocks."""
-    content = message.content
-    if isinstance(content, str):
-        return content
-    return "".join(block.get("text", "") for block in content if isinstance(block, dict) and block.get("type") == "text")
-
-
 APPROVE_ANSWERS = {"s", "si", "sí", "y", "yes"}
 
 
@@ -60,7 +52,7 @@ def main(argv: list[str] | None = None) -> None:
     from langgraph.checkpoint.memory import InMemorySaver
     from langgraph.types import Command
 
-    from fleet_copilot.agent import build_graph, thread_config
+    from fleet_copilot.agent import build_graph, message_text, thread_config
 
     graph = build_graph(checkpointer=InMemorySaver())
     config = thread_config(args.company, uuid.uuid4().hex[:8])
@@ -87,12 +79,17 @@ def main(argv: list[str] | None = None) -> None:
 
     def _print_update(update: dict) -> None:
         for node, change in update.items():
+            if node == "planner":
+                print("Plan:", file=sys.stderr)
+                for line in change["plan"].splitlines():
+                    print(f"  {line}", file=sys.stderr)
+                continue
             for message in change.get("messages", []):
                 if node == "agent" and getattr(message, "tool_calls", None):
                     names = ", ".join(call["name"] for call in message.tool_calls)
                     print(f"  · {names}", file=sys.stderr)
                 elif node == "agent":
-                    print(_text(message))
+                    print(message_text(message))
 
     if args.question:
         ask(args.question)

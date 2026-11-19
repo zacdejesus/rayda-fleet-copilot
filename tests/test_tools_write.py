@@ -15,6 +15,7 @@ from fleet_copilot.tools_write import ACTION_TOOLS
 
 ACME = "acme-001"
 INITECH_DEVICE = "I3JLKILKQTAC"  # belongs to initech-003
+PLAN = AIMessage(content="1. Call fleet_insights.")
 NOT_FOUND_EMPLOYEE = "Employee not found for this company."
 UNKNOWN_SNAPSHOT = "NOPE00000000@2026-01-01T00:00:00Z"
 
@@ -124,7 +125,7 @@ def _outbox_has_records(outbox):
 
 def _start(script, company=ACME, question="propón una acción"):
     """Run until the graph finishes or pauses for approval. Returns (graph, config, result)."""
-    model = ScriptedModel(script=script, seen=[])
+    model = ScriptedModel(script=[PLAN, *script], seen=[])  # the first reply is the planner's
     graph = build_graph(model=model, checkpointer=InMemorySaver())
     config = thread_config(company, "test")
     result = graph.invoke({"messages": [HumanMessage(question)], "company_id": company}, config)
