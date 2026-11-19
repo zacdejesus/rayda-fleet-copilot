@@ -24,3 +24,22 @@ def record(event: dict[str, Any]) -> None:
             handle.write(json.dumps(line, ensure_ascii=False, default=str) + "\n")
     except OSError:
         pass  # A broken log must not break the answer; the CLI warns on startup instead.
+
+
+FINAL_OUTCOMES = {"approved", "rejected"}
+
+
+def final_outcome(tool_call_id: str) -> dict[str, Any] | None:
+    """The approved or rejected event already logged for this tool call, if any.
+
+    Action tools use it to stay idempotent when LangGraph re-runs them on resume.
+    """
+    try:
+        with open(audit_path(), encoding="utf-8") as handle:
+            for line in handle:
+                event = json.loads(line)
+                if event.get("tool_call_id") == tool_call_id and event.get("outcome") in FINAL_OUTCOMES:
+                    return event
+    except (OSError, json.JSONDecodeError):
+        return None
+    return None

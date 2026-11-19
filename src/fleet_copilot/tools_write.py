@@ -9,6 +9,10 @@ Every action runs the same flow, in code, before a human is asked:
 
 A refused proposal never reaches the human. LangGraph re-runs the tool from the top
 on resume, so steps a-c only read data, and ids and timestamps are created after approval.
+When several approvals are pending in one tool step, LangGraph also re-runs the actions
+that were already decided. Each action is keyed by its tool call id: the action_id is
+derived from it, and a call that already reached a final outcome in the audit log returns
+that outcome again without writing anything.
 """
 
 from __future__ import annotations
@@ -19,9 +23,9 @@ import uuid
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Annotated, Any, Callable, Literal
 
-from langchain_core.tools import tool
+from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.types import interrupt
 
 from fleet_copilot import audit, insights, tools_read
@@ -119,6 +123,7 @@ def _act(
     *,
     fields: dict[str, Any],
     evidence: list[str],
+    tool_call_id: str,
     device_id: str | None = None,
     employee_id: str | None = None,
     precondition: Precondition | None = None,
@@ -128,6 +133,7 @@ def _act(
     event: dict[str, Any] = {
         "company_id": company_id,
         "tool": action,
+        "tool_call_id": tool_call_id,
         "args": {**subject, **fields, "evidence": list(evidence)},
     }
     snapshots = load_snapshots()
@@ -171,6 +177,13 @@ def _act(
     proposal = {"company_id": company_id, **identity, **fields, "evidence": list(evidence)}
     decision = interrupt({"action": action, "proposal": proposal})
 
+    # A re-run of a call that was already decided returns the same result and writes nothing.
+    done = audit.final_outcome(tool_call_id)
+    if done is not None:
+        if done["outcome"] == "approved":
+            return json.dumps({"status": "created", "action_id": done["action_id"]})
+        return json.dumps({"status": "rejected", "reason": done.get("reason", "")}, ensure_ascii=False)
+
     # e. Approved or rejected.
     if not decision.get("approved"):
         reason = decision.get("reason") or ""
@@ -178,7 +191,7 @@ def _act(
         return json.dumps({"status": "rejected", "reason": reason}, ensure_ascii=False)
 
     record = {
-        "action_id": uuid.uuid4().hex,
+        "action_id": uuid.uuid5(uuid.NAMESPACE_URL, f"{company_id}/{tool_call_id}").hex,
         "action": action,
         **proposal,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -200,6 +213,7 @@ def open_remediation_ticket(
     check_id: Literal["disk_encryption", "screen_lock", "os_up_to_date"],
     note: str,
     evidence: list[str],
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> str:
     """Propose an IT ticket to fix one failing compliance check on one device. A human must approve it.
 
@@ -214,6 +228,7 @@ def open_remediation_ticket(
         device_id=device_id,
         fields={"check_id": check_id, "note": note},
         evidence=evidence,
+        tool_call_id=tool_call_id,
         precondition=partial(_check_failing, check_id),
     )
 
@@ -225,6 +240,7 @@ def create_upgrade_order(
     component: Literal["ram", "disk", "battery"],
     spec: str,
     evidence: list[str],
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> str:
     """Propose a hardware upgrade order (ram, disk or battery) for one device. A human must approve it.
 
@@ -238,6 +254,7 @@ def create_upgrade_order(
         device_id=device_id,
         fields={"component": component, "spec": spec},
         evidence=evidence,
+        tool_call_id=tool_call_id,
         precondition=partial(_upgrade_supported, component),
     )
 
@@ -248,6 +265,7 @@ def flag_device_for_replacement(
     device_id: str,
     reason: str,
     evidence: list[str],
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> str:
     """Propose flagging one device for replacement. A human must approve it.
 
@@ -261,6 +279,7 @@ def flag_device_for_replacement(
         device_id=device_id,
         fields={"reason": reason},
         evidence=evidence,
+        tool_call_id=tool_call_id,
         precondition=_replacement_supported,
     )
 
@@ -271,6 +290,7 @@ def notify_employee(
     employee_id: str,
     message: str,
     evidence: list[str],
+    tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> str:
     """Propose a message to an employee about their device. A human must approve it before it is sent.
 
@@ -284,6 +304,7 @@ def notify_employee(
         employee_id=employee_id,
         fields={"message": message},
         evidence=evidence,
+        tool_call_id=tool_call_id,
     )
 
 
