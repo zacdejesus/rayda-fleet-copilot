@@ -142,6 +142,7 @@ class _FailingModel:
 def test_setup_error_stops_the_run_and_writes_no_report(evals, tmp_path, monkeypatch, capsys):
     report = tmp_path / "report.json"
     monkeypatch.setattr(evals, "REPORT_PATH", report)
+    monkeypatch.setattr(evals, "RUNS_DIR", tmp_path / "runs")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("FLEET_AUDIT_PATH", str(tmp_path / "audit.jsonl"))
     model = _FailingModel(anthropic.AuthenticationError("invalid x-api-key", response=_http_response(401), body=None))
