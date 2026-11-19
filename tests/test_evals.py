@@ -1,0 +1,103 @@
+"""Unit tests for the eval harness. No model calls: only the case file and the grader."""
+
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+from fleet_copilot.data import load_snapshots
+
+RUN_EVALS = Path(__file__).resolve().parents[1] / "evals" / "run_evals.py"
+
+
+@pytest.fixture(scope="module")
+def evals():
+    spec = importlib.util.spec_from_file_location("run_evals", RUN_EVALS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def maps(evals):
+    return evals.dataset_maps()
+
+
+@pytest.fixture(scope="module")
+def tool_names():
+    from fleet_copilot.tools import TOOLS
+
+    return {tool.name for tool in TOOLS}
+
+
+def _snapshot_of(device_id):
+    """A real snapshot id of one device from the dataset."""
+    snapshots = load_snapshots()
+    return snapshots[snapshots["device_id"] == device_id]["snapshot_id"].iloc[-1]
+
+
+LOW_DISK_CASE = {
+    "id": "acme-low-disk",
+    "company_id": "acme-001",
+    "question": "¿Qué equipos se quedan sin disco?",
+    "expected_devices": ["8NM23J95R5I6", "MT7PJB7N5LRE"],
+    "forbidden_devices": ["E4V0SB5I0MYU", "DARFCP0BQM2G"],
+    "forbidden_text": ["initech"],
+    "must_mention_any": ["disco"],
+}
+
+
+def test_cases_yaml_passes_validation(evals, maps, tool_names):
+    cases = evals.load_cases()
+    device_company, _ = maps
+    assert evals.validate_cases(cases, device_company, tool_names) == []
+
+
+def test_good_answer_passes(evals, maps):
+    _, snapshot_company = maps
+    answer = (
+        "Dos equipos tienen poco disco libre: 8NM23J95R5I6 [" + _snapshot_of("8NM23J95R5I6") + "] "
+        "y MT7PJB7N5LRE [" + _snapshot_of("MT7PJB7N5LRE") + "]."
+    )
+    result = evals.grade(LOW_DISK_CASE, answer, ["fleet_insights"], snapshot_company)
+    assert result["passed"], result["checks"]
+
+
+def test_forbidden_device_fails(evals, maps):
+    _, snapshot_company = maps
+    answer = (
+        "8NM23J95R5I6 y MT7PJB7N5LRE tienen poco disco, y también E4V0SB5I0MYU "
+        f"[{_snapshot_of('8NM23J95R5I6')}]."
+    )
+    result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
+    assert not result["passed"]
+    assert not result["checks"]["forbidden_devices"]["passed"]
+
+
+def test_cited_snapshot_of_another_company_fails(evals, maps):
+    _, snapshot_company = maps
+    answer = (
+        "8NM23J95R5I6 y MT7PJB7N5LRE tienen poco disco "
+        f"[{_snapshot_of('8NM23J95R5I6')}] [{_snapshot_of('E4V0SB5I0MYU')}]."
+    )
+    result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
+    assert not result["passed"]
+    assert not result["checks"]["citations_company"]["passed"]
+    assert result["checks"]["citations_exist"]["passed"]
+
+
+def test_nonexistent_snapshot_fails(evals, maps):
+    _, snapshot_company = maps
+    answer = "8NM23J95R5I6 y MT7PJB7N5LRE tienen poco disco [8NM23J95R5I6@2001-01-01T00:00:00Z]."
+    result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
+    assert not result["passed"]
+    assert not result["checks"]["citations_exist"]["passed"]
+
+
+def test_missing_expected_device_fails(evals, maps):
+    _, snapshot_company = maps
+    answer = f"Solo 8NM23J95R5I6 tiene poco disco [{_snapshot_of('8NM23J95R5I6')}]."
+    result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
+    assert not result["passed"]
+    assert not result["checks"]["expected_devices"]["passed"]
+    assert "MT7PJB7N5LRE" in result["checks"]["expected_devices"]["detail"]
