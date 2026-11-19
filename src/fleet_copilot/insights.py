@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from fleet_copilot.data import load_snapshots
-from fleet_copilot.tools_read import _plain, _result
+from fleet_copilot.tools_read import to_plain, make_result
 
 LOW_DISK_PCT = 10.0
 PERSISTENT_SHARE = 0.8  # "consistently" = in at least 80% of the device's snapshots
@@ -46,7 +46,7 @@ def _days_between(history: pd.DataFrame) -> np.ndarray:
 
 
 def _int_or_none(value: Any) -> int | None:
-    plain = _plain(value)
+    plain = to_plain(value)
     return None if plain is None else int(plain)
 
 
@@ -69,7 +69,7 @@ def _make_row(
         "category": category,
         "finding": finding,
         "explanation": explanation,
-        "metrics": {key: _plain(value) for key, value in metrics.items()},
+        "metrics": {key: to_plain(value) for key, value in metrics.items()},
         "evidence": _unique([first_id, latest["snapshot_id"], *evidence]),
         "snapshot_id": latest["snapshot_id"],
     }
@@ -77,7 +77,7 @@ def _make_row(
 
 def _result_from_rows(rows: list[Row], notes: list[str]) -> Result:
     evidence = _unique([snap_id for row in rows for snap_id in row["evidence"]])
-    return _result(rows, evidence, notes)
+    return make_result(rows, evidence, notes)
 
 
 def detect_low_storage(company_id: str) -> Result:
@@ -210,7 +210,7 @@ def detect_battery_end_of_life(company_id: str) -> Result:
 
         present = history[has_battery]
         first, latest = present.iloc[0], present.iloc[-1]
-        condition = _plain(latest["battery_condition"])
+        condition = to_plain(latest["battery_condition"])
         is_service = condition is not None and condition != "Normal"
         cycles_first = _int_or_none(first["battery_cycle_count"])
         cycles_latest = _int_or_none(latest["battery_cycle_count"])
@@ -302,7 +302,7 @@ def detect_compliance_drift(company_id: str) -> Result:
 
             if statuses[0] == "pass" and statuses[-1] == "fail":
                 first_fail_snap = next(snap for snap, status, _ in timeline if status == "fail")
-                first_fail_at = _plain(first_fail_snap["collected_at"])
+                first_fail_at = to_plain(first_fail_snap["collected_at"])
                 rows.append(
                     _make_row(
                         "compliance_drift",
@@ -365,4 +365,4 @@ def all_insights(company_id: str) -> Result:
     rows = [row for result in results for row in result["rows"]]
     evidence = _unique([snap_id for result in results for snap_id in result["evidence"]])
     notes = [note for result in results for note in result["notes"]]
-    return _result(rows, evidence, notes)
+    return make_result(rows, evidence, notes)

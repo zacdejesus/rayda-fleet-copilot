@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install
+        run: uv sync --locked
+      - name: Unit tests
+        run: uv run pytest -q
+      - name: Validate eval cases
+        run: uv run python evals/run_evals.py --check
