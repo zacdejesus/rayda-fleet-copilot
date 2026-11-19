@@ -1,7 +1,7 @@
 [project]
 name = "fleet-copilot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agentic fleet copilot over device telemetry, built with LangGraph and Claude"
 readme = "README.md"
 authors = [
     { name = "Alejandro De Jesus", email = "zadkielsi@outlook.com" }
@@ -11,6 +11,7 @@ dependencies = [
     "langchain-anthropic>=1.7.10",
     "langchain-core>=1.8.2",
     "langgraph>=1.2.22",
+    "numpy>=2.5.5",
     "pandas>=3.1.1",
     "pydantic>=2.14.3",
     "python-dotenv>=1.2.4",

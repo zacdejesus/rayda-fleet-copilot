@@ -45,7 +45,7 @@ class NotFound(Exception):
     """No device with that id exists."""
 
 
-def _plain(value: Any) -> Any:
+def to_plain(value: Any) -> Any:
     """Convert pandas and numpy values to plain JSON-friendly Python values."""
     if isinstance(value, (list, dict)):
         return value
@@ -59,7 +59,7 @@ def _plain(value: Any) -> Any:
 
 
 def _pick(record: dict[str, Any], keys: list[str]) -> dict[str, Any]:
-    return {key: _plain(record[key]) for key in keys}
+    return {key: to_plain(record[key]) for key in keys}
 
 
 def _gb(num_bytes: Any) -> float:
@@ -75,7 +75,7 @@ def _scalar_fields(record: dict[str, Any]) -> dict[str, Any]:
         if key in BYTE_FIELDS:
             row[BYTE_FIELDS[key]] = _gb(value)
         else:
-            row[key] = _plain(value)
+            row[key] = to_plain(value)
     return row
 
 
@@ -100,7 +100,7 @@ def _device_history(company_id: str, device_id: str) -> list[dict[str, Any]]:
     return device.sort_values("collected_at").to_dict("records")
 
 
-def _result(rows: list[dict[str, Any]], evidence: list[str], notes: list[str]) -> dict[str, Any]:
+def make_result(rows: list[dict[str, Any]], evidence: list[str], notes: list[str]) -> dict[str, Any]:
     return {"rows": rows, "evidence": evidence, "notes": notes}
 
 
@@ -130,7 +130,7 @@ def list_devices(
     ]
     rows = [_pick(d, keys) for d in devices]
     filters = f"form_factor={form_factor}, os_name={os_name}"
-    return _result(rows, [r["snapshot_id"] for r in rows], [f"{len(rows)} devices. Filters: {filters}."])
+    return make_result(rows, [r["snapshot_id"] for r in rows], [f"{len(rows)} devices. Filters: {filters}."])
 
 
 def get_device(company_id: str, device_id: str) -> dict[str, Any]:
@@ -139,7 +139,7 @@ def get_device(company_id: str, device_id: str) -> dict[str, Any]:
     row = _scalar_fields(latest)
     row["installed_software"] = [sw["name"] for sw in latest["installed_software"]]
     row["compliance"] = latest["compliance"]
-    return _result([row], [latest["snapshot_id"]], [f"Latest snapshot at {row['collected_at']}."])
+    return make_result([row], [latest["snapshot_id"]], [f"Latest snapshot at {row['collected_at']}."])
 
 
 def low_disk_devices(company_id: str, threshold_pct: float = 10.0) -> dict[str, Any]:
@@ -150,7 +150,7 @@ def low_disk_devices(company_id: str, threshold_pct: float = 10.0) -> dict[str, 
         {
             "device_id": d["device_id"],
             "employee_id": d["employee_id"],
-            "disk_free_pct": _plain(d["disk_free_pct"]),
+            "disk_free_pct": to_plain(d["disk_free_pct"]),
             "disk_available_gb": _gb(d["disk_available_bytes"]),
             "disk_size_gb": _gb(d["disk_size_bytes"]),
             "snapshot_id": d["snapshot_id"],
@@ -162,7 +162,7 @@ def low_disk_devices(company_id: str, threshold_pct: float = 10.0) -> dict[str, 
         f"{len(rows)} of {len(devices)} devices matched.",
     ]
     # Evidence covers every device checked, so "none are low" is still grounded.
-    return _result(rows, [d["snapshot_id"] for d in devices], notes)
+    return make_result(rows, [d["snapshot_id"] for d in devices], notes)
 
 
 def compliance_failures(
@@ -199,7 +199,7 @@ def compliance_failures(
     matched_devices = len({r["device_id"] for r in rows})
     notes = [f"Checked {len(devices)} devices; {matched_devices} matched with {len(rows)} failing checks."]
     # Evidence covers every device checked, not only the failing ones.
-    return _result(rows, [d["snapshot_id"] for d in devices], notes)
+    return make_result(rows, [d["snapshot_id"] for d in devices], notes)
 
 
 def os_older_than(company_id: str, version: str = "15", os_name: str = "macOS") -> dict[str, Any]:
@@ -226,7 +226,7 @@ def os_older_than(company_id: str, version: str = "15", os_name: str = "macOS") 
     notes = [f"Compared {len(macos)} macOS devices against version {version}."]
     if excluded:
         notes.append(f"Excluded {len(excluded)} non-macOS devices: {', '.join(excluded)}.")
-    return _result(rows, [d["snapshot_id"] for d in macos], notes)
+    return make_result(rows, [d["snapshot_id"] for d in macos], notes)
 
 
 def device_timeseries(company_id: str, device_id: str, metric: str) -> dict[str, Any]:
@@ -240,10 +240,10 @@ def device_timeseries(company_id: str, device_id: str, metric: str) -> dict[str,
         if metric == "compliance":
             value: Any = [c["check_id"] for c in snap["compliance"] if c["status"] == "fail"]
         else:
-            value = _plain(snap[metric])
+            value = to_plain(snap[metric])
         rows.append(
             {
-                "collected_at": _plain(snap["collected_at"]),
+                "collected_at": to_plain(snap["collected_at"]),
                 "value": value,
                 "snapshot_id": snap["snapshot_id"],
             }
@@ -254,7 +254,7 @@ def device_timeseries(company_id: str, device_id: str, metric: str) -> dict[str,
         missing = sum(1 for r in rows if r["value"] is None)
         if missing:
             notes.append(f"battery data missing in {missing} snapshots")
-    return _result(rows, [s["snapshot_id"] for s in history], notes)
+    return make_result(rows, [s["snapshot_id"] for s in history], notes)
 
 
 def installed_software(company_id: str, name: str | None = None) -> dict[str, Any]:
@@ -280,4 +280,4 @@ def installed_software(company_id: str, name: str | None = None) -> dict[str, An
 
     filter_text = f"name contains '{name}'" if name is not None else "no name filter"
     notes = [f"{len(rows)} installed items across {len(devices)} devices ({filter_text})."]
-    return _result(rows, [d["snapshot_id"] for d in devices], notes)
+    return make_result(rows, [d["snapshot_id"] for d in devices], notes)
