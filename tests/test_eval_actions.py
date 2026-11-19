@@ -12,10 +12,10 @@ from pathlib import Path
 
 import pytest
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
-from fleet_copilot.data import latest_per_device, load_snapshots
+from fleet_copilot.data import load_snapshots
 from fleet_copilot.tools import TOOLS
 
 RUN_EVALS = Path(__file__).resolve().parents[1] / "evals" / "run_evals.py"

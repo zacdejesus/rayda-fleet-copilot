@@ -33,7 +33,7 @@ uv run fleet-copilot --company acme-001
 uv run fleet-copilot --company acme-001 -q "¿Qué equipos se están quedando sin espacio en disco?"
 ```
 
-The company is fixed for the whole session. There is no command to switch companies inside a conversation: in a production system the company would come from the user's login. For each turn the CLI prints the plan, then each tool call and its result. When the agent proposes an action, the CLI asks "¿Aprobar? [s/N]". Only an explicit "s" approves; anything else rejects.
+The company is fixed for the whole session. There is no command to switch companies inside a conversation: in a production system the company would come from the user's login. For each turn the CLI prints the plan, then each tool call and its result. When the agent proposes an action, the CLI asks "¿Aprobar? [s/N]". Only `s`, `si`, `sí`, `y` or `yes` approve (case-insensitive); anything else, an empty answer or Ctrl-C rejects. After each answer the CLI checks every cited `snapshot_id` against the session company; a citation that does not exist or belongs to another company is flagged on screen and logged in `audit.jsonl` as `invalid_citations`.
 
 Two files record what happened:
 
@@ -189,6 +189,8 @@ The answer is only as good as the data behind it, so the design keeps the model 
 - Refusal and "not found" answers are detected in the evals by substring matching, so an answer phrased outside the listed phrases can fail a case.
 - A 400 error on one eval case stops the whole run instead of being recorded as a failure for that case.
 - `data.py` assumes one volume per device when it reads disk metrics.
+- The audit log is the source of truth for action idempotency, and `final_outcome` reads the whole file on each re-run. In production it would be a table indexed by `tool_call_id`. If the log cannot be read, a re-run could write an action twice.
+- Long sessions keep every message and tool result; there is no trimming or summarising of older turns.
 - The dataset is a 30-day sample of 25 devices. The thresholds are fixed constants and would need review for a real fleet.
 
 ## Project layout
@@ -208,6 +210,7 @@ rayda-fleet-copilot/
     insights.py                  deterministic detectors and thresholds
     data.py                      loads and indexes the dataset
     audit.py                     audit.jsonl writer and outcome lookup
+    citations.py                 live check of cited snapshot ids in CLI answers
     cli.py                       fleet-copilot command: chat and -q mode
   tests/                         pytest suite, scripted model, no API key
   evals/

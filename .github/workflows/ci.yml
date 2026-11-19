@@ -13,6 +13,8 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: Install
         run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check .
       - name: Unit tests
         run: uv run pytest -q
       - name: Validate eval cases
