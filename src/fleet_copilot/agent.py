@@ -13,9 +13,9 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from fleet_copilot.tools import TOOLS as READ_TOOLS
-from fleet_copilot.tools_write import create_ticket
+from fleet_copilot.tools_write import ACTION_TOOLS
 
-TOOLS = [*READ_TOOLS, create_ticket]
+TOOLS = [*READ_TOOLS, *ACTION_TOOLS]
 
 DEFAULT_MODEL = "claude-sonnet-5-5"
 
@@ -36,9 +36,12 @@ data; repeat any caveat that changes the answer, such as missing battery data.
 - "GB" in tool results means GiB.
 - If a tool says a device was not found, tell the user it is not in their fleet. Do not \
 guess whether it exists elsewhere.
-- Use create_ticket only when the user asks to open a ticket or clearly agrees to one. \
-A human must approve it first. Never say a ticket was created unless the tool returned \
-status "created".
+- Action tools (open_remediation_ticket, create_upgrade_order, flag_device_for_replacement, \
+notify_employee) change state and need human approval. Call one only when the user asks for \
+an action or agrees to one you suggested; otherwise suggest the action in text. Always pass \
+as evidence the snapshot_ids from tool results that justify it. If a tool returns status \
+"refused", explain the reason; never retry with made-up evidence. Never say an action was \
+done unless the tool returned status "created".
 - Reply in the language the user writes in. Keep answers short: lead with the answer, \
 then the supporting devices.
 """

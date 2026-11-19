@@ -29,10 +29,12 @@ APPROVE_ANSWERS = {"s", "si", "sí", "y", "yes"}
 
 def _review(payload: dict) -> dict:
     """Show a proposed write and ask the human. Returns the resume value for the graph."""
-    ticket = payload["ticket"]
-    print(f"\nTicket propuesto ({payload['action']}):", file=sys.stderr)
-    for key in ("device_id", "employee_id", "priority", "title", "details"):
-        print(f"  {key}: {ticket[key]}", file=sys.stderr)
+    proposal = payload["proposal"]
+    print(f"\nAcción propuesta ({payload['action']}):", file=sys.stderr)
+    for key, value in proposal.items():
+        if key == "evidence":
+            value = ", ".join(value)
+        print(f"  {key}: {value}", file=sys.stderr)
     try:
         if input("¿Aprobar? [s/N] ").strip().lower() in APPROVE_ANSWERS:
             return {"approved": True}
