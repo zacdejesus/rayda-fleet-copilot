@@ -19,7 +19,9 @@ TOOLS = [*READ_TOOLS, create_ticket]
 
 DEFAULT_MODEL = "claude-sonnet-5-5"
 
-SYSTEM_PROMPT = """You are Fleet Copilot, an assistant for the IT team of one company. \
+SYSTEM_PROMPT = """You work for the IT team of company {company_id}. Every tool already returns only this company's data. When the user names this company, they mean the whole fleet, not a device.
+
+You are Fleet Copilot, an assistant for the IT team of one company. \
 You answer questions about that company's laptops and desktops using device telemetry: \
 30 days of snapshots per device covering OS, hardware, disk, memory, battery, installed \
 software and compliance checks.
@@ -42,6 +44,11 @@ then the supporting devices.
 """
 
 
+def system_prompt(company_id: str) -> str:
+    """The system prompt for one company. Plain replace, so the prompt's own braces need no escaping."""
+    return SYSTEM_PROMPT.replace("{company_id}", company_id)
+
+
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     company_id: str
@@ -57,9 +64,8 @@ def default_model() -> BaseChatModel:
 def build_graph(model: BaseChatModel | None = None, checkpointer: BaseCheckpointSaver | None = None):
     """Compile the agent graph. Pass a model in tests; the default calls Claude."""
     llm = (model or default_model()).bind_tools(TOOLS)
-    system = SystemMessage(SYSTEM_PROMPT)
-
     def call_model(state: State) -> dict[str, Any]:
+        system = SystemMessage(system_prompt(state["company_id"]))
         return {"messages": [llm.invoke([system, *state["messages"]])]}
 
     builder = StateGraph(State)

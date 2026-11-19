@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langgraph.checkpoint.memory import InMemorySaver
 
-from fleet_copilot.agent import build_graph, thread_config
+from fleet_copilot.agent import build_graph, system_prompt, thread_config
 from fleet_copilot.tools import TOOLS
 from fleet_copilot.tools_read import NOT_AVAILABLE
 
@@ -114,3 +114,22 @@ def test_threads_are_scoped_by_company():
     assert thread_config("acme-001", "s1")["configurable"]["thread_id"] != thread_config("globex-002", "s1")[
         "configurable"
     ]["thread_id"]
+
+
+COMPANIES = ["acme-001", "globex-002", "initech-003"]
+
+
+@pytest.mark.parametrize("company", COMPANIES)
+def test_system_prompt_names_only_its_own_company(company):
+    prompt = system_prompt(company)
+    assert company in prompt
+    for other in COMPANIES:
+        if other != company:
+            assert other not in prompt
+
+
+def test_model_is_told_which_company_it_serves():
+    _, model = _run([AIMessage(content="ok")], company="globex-002")
+    first = model.seen[0][0]
+    assert first.type == "system"
+    assert "globex-002" in first.content

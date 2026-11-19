@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import anthropic
 import yaml
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
@@ -197,6 +198,18 @@ def _text(message: AIMessage) -> str:
     return "".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
 
 
+SETUP_ERRORS = (anthropic.AuthenticationError, anthropic.PermissionDeniedError, anthropic.BadRequestError)
+
+
+def is_setup_error(exc: BaseException) -> bool:
+    """True for errors that mean the configuration is wrong (key, permissions, model request), not one case.
+
+    langchain-anthropic wraps these in subclasses of the SDK classes (for example AnthropicInvalidRequestError
+    subclasses anthropic.BadRequestError), so isinstance covers the wrapped errors too.
+    """
+    return isinstance(exc, SETUP_ERRORS)
+
+
 def run_case(case: Case, model: Any = None) -> dict[str, Any]:
     """Run one case through a fresh graph and return the raw outcome (no grading)."""
     graph = build_graph(model=model, checkpointer=InMemorySaver())
@@ -223,7 +236,7 @@ def print_table(rows: list[tuple[str, bool, str]]) -> None:
         print(f"{case_id.ljust(width)}  {'PASS' if passed else 'FAIL'}    {failed}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, model: Any = None) -> int:
     load_dotenv()
     parser = argparse.ArgumentParser(description="Run the Fleet Copilot evals.")
     parser.add_argument("--check", action="store_true", help="validate cases.yaml only, no model calls")
@@ -269,10 +282,17 @@ def main(argv: list[str] | None = None) -> int:
     for case in cases:
         print(f"running {case['id']} ...", file=sys.stderr)
         try:
-            outcome = run_case(case)
+            outcome = run_case(case, model=model)
             graded = grade(case, outcome["answer"], outcome["tool_names"], snapshot_company)
             error = None
         except Exception as exc:  # a failed model call fails the case, the run continues
+            if is_setup_error(exc):
+                print(
+                    f"Setup error on case {case['id']}: {type(exc).__name__}: {exc}. "
+                    "Fix the API key or configuration and run again.",
+                    file=sys.stderr,
+                )
+                return 2
             outcome = {"answer": "", "tool_names": []}
             graded = {
                 "passed": False,
