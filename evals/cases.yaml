@@ -34,6 +34,12 @@ cases:
     expected_devices: [M4XVHUV1MEPZ, 8NM23J95R5I6, 7VP16KHV88LM]
     forbidden_devices: [I3JLKILKQTAC, RLD7WV7J82SH]
 
+  - id: acme-battery-no-company
+    company_id: acme-001
+    question: "¿Qué baterías necesitan servicio técnico o están muy desgastadas?"
+    expected_devices: [M4XVHUV1MEPZ, 8NM23J95R5I6, 7VP16KHV88LM]
+    forbidden_devices: [I3JLKILKQTAC, RLD7WV7J82SH]
+
   - id: acme-macos-older-than-15
     company_id: acme-001
     question: "¿Qué equipos macOS de acme-001 tienen una versión anterior a macOS 15?"
@@ -41,7 +47,7 @@ cases:
     forbidden_devices: [4SEFDLPTKXAM, QPZSXKINA7GP, DARFCP0BQM2G, RLD7WV7J82SH, SPKRRDF0L786, XZYK11QTPWEC]
     expected_tools: [os_older_than]
     must_mention: ["macos 15"]
-    must_mention_any: ["windows"]
+    must_mention_any: ["windows", "no son macos", "no macos"]
 
   - id: acme-screen-lock-drift
     company_id: acme-001
