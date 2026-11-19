@@ -299,11 +299,6 @@ def test_run_case_answers_several_pending_approvals_together(evals, isolated):
     assert sorted(r["status"] for r in outcome["tool_results"]) == ["created", "created"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Known bug in tools_write: resuming a second pending approval re-runs the first approved call, "
-    "which appends its outbox record again. Remove this mark once the action writes one record per approval.",
-)
 def test_two_approved_proposals_in_one_step_write_two_records(evals, isolated):
     two_calls = AIMessage(
         content="",
@@ -563,3 +558,19 @@ def test_validate_rejects_an_unknown_matcher_argument(evals):
         TOOL_NAMES,
     )
     assert any("'device'" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("approval, outcome", [("approve", "approved"), ("reject", "rejected")])
+def test_two_proposals_in_one_step_are_each_audited_once(evals, isolated, approval, outcome):
+    two_calls = AIMessage(
+        content="",
+        tool_calls=[
+            {"name": "open_remediation_ticket", "args": _remediation_args(), "id": "call_a"},
+            {"name": "open_remediation_ticket", "args": _remediation_args(), "id": "call_b"},
+        ],
+    )
+    model = ScriptedModel(script=[PLAN, two_calls, AIMessage(content="Listo.")], seen=[])
+    evals.run_case(_case(approval=approval), model=model)
+    events = [json.loads(line) for line in (isolated / "audit.jsonl").read_text().splitlines()]
+    final = [e["tool_call_id"] for e in events if e.get("outcome") == outcome]
+    assert sorted(final) == ["call_a", "call_b"]
