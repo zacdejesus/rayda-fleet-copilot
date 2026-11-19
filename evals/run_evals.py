@@ -220,7 +220,7 @@ def run_case(case: Case, model: Any = None) -> dict[str, Any]:
     ai_messages = [m for m in final["messages"] if isinstance(m, AIMessage)]
     tool_names = [call["name"] for m in ai_messages for call in m.tool_calls]
     answer = _text(ai_messages[-1]) if ai_messages else ""
-    return {"answer": answer, "tool_names": tool_names}
+    return {"answer": answer, "tool_names": tool_names, "plan": final.get("plan", "")}
 
 
 def _failed_names(result: dict[str, Any]) -> str:
@@ -293,7 +293,7 @@ def main(argv: list[str] | None = None, model: Any = None) -> int:
                     file=sys.stderr,
                 )
                 return 2
-            outcome = {"answer": "", "tool_names": []}
+            outcome = {"answer": "", "tool_names": [], "plan": ""}
             graded = {
                 "passed": False,
                 "checks": {"run": {"passed": False, "detail": f"{type(exc).__name__}: {exc}"}},
@@ -306,6 +306,7 @@ def main(argv: list[str] | None = None, model: Any = None) -> int:
             "company_id": case["company_id"],
             "question": case["question"],
             "answer": outcome["answer"],
+            "plan": outcome["plan"],
             "tools_called": outcome["tool_names"],
             "citations": graded["citations"],
             "checks": graded["checks"],
