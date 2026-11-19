@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> None:
     from langgraph.types import Command
 
     from fleet_copilot.agent import build_graph, message_text, thread_config
+    from fleet_copilot.citations import invalid_citations
 
     graph = build_graph(checkpointer=InMemorySaver())
     config = thread_config(args.company, uuid.uuid4().hex[:8])
@@ -89,7 +90,16 @@ def main(argv: list[str] | None = None) -> None:
                     names = ", ".join(call["name"] for call in message.tool_calls)
                     print(f"  · {names}", file=sys.stderr)
                 elif node == "agent":
-                    print(message_text(message))
+                    text = message_text(message)
+                    print(text)
+                    _warn_invalid_citations(text)
+
+    def _warn_invalid_citations(text: str) -> None:
+        bad = invalid_citations(text, args.company)
+        if not bad:
+            return
+        print(f"  ! Citas no verificables en esta respuesta: {', '.join(bad)}", file=sys.stderr)
+        audit.record({"company_id": args.company, "tool": "citation_check", "outcome": "invalid_citations", "citations": bad})
 
     if args.question:
         ask(args.question)

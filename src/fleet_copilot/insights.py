@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from fleet_copilot.data import load_snapshots
-from fleet_copilot.tools_read import to_plain, make_result
+from fleet_copilot.tools_read import make_result, to_plain
 
 LOW_DISK_PCT = 10.0
 PERSISTENT_SHARE = 0.8  # "consistently" = in at least 80% of the device's snapshots
