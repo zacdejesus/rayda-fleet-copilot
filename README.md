@@ -18,7 +18,7 @@ The `.env` file needs two values:
 
 | Variable | Meaning |
 |---|---|
-| `ANTHROPIC_API_KEY` | Your API key. Use a key scoped to a workspace: an unscoped key is rejected with "must include the anthropic-workspace-id header". |
+| `ANTHROPIC_API_KEY` | Your Anthropic API key. |
 | `FLEET_MODEL` | Model id. Defaults to `claude-sonnet-5-5` when unset. |
 
 The telemetry dataset is vendored in the repository at `data/device-telemetry-dataset.ndjson`: 750 snapshots, 25 devices, 3 companies (`acme-001`, `globex-002`, `initech-003`) and 30 days of history. Nothing is downloaded at run time, so the evals never depend on an external link. Each snapshot has the id `<device_id>@<collected_at>`.
