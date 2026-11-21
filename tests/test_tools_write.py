@@ -123,7 +123,7 @@ def _outbox_has_records(outbox):
     return outbox.exists() and any(outbox.iterdir())
 
 
-def _start(script, company=ACME, question="propón una acción"):
+def _start(script, company=ACME, question="propose an action"):
     """Run until the graph finishes or pauses for approval. Returns (graph, config, result)."""
     model = ScriptedModel(script=[PLAN, *script], seen=[])  # the first reply is the planner's
     graph = build_graph(model=model, checkpointer=InMemorySaver())
@@ -153,7 +153,7 @@ def _direct(paths, action, args, company=ACME):
 def _approve(paths, action, args, company=ACME):
     """Propose one action, approve it, and return (the one outbox record, the proposal shown to the human, tool content)."""
     _, outbox = paths
-    graph, config, _ = _start([_call(action, args), AIMessage(content="listo")], company=company)
+    graph, config, _ = _start([_call(action, args), AIMessage(content="Done.")], company=company)
     pending = _pending(graph, config)
     assert [i.value["action"] for i in pending] == [action]
     proposal = pending[0].value["proposal"]
@@ -203,7 +203,7 @@ def test_remediation_ticket_approved_writes_one_line(paths):
     record, proposal, _ = _approve(
         paths,
         "open_remediation_ticket",
-        {"device_id": device, "check_id": "screen_lock", "note": "Activar bloqueo de pantalla.", "evidence": evidence},
+        {"device_id": device, "check_id": "screen_lock", "note": "Enable screen lock.", "evidence": evidence},
     )
 
     assert proposal["company_id"] == ACME and proposal["device_id"] == device
@@ -249,7 +249,7 @@ def test_replacement_flag_approved_writes_one_line(paths):
     record, _, _ = _approve(
         paths,
         "flag_device_for_replacement",
-        {"device_id": device, "reason": "Memoria saturada.", "evidence": [_latest_id(device)]},
+        {"device_id": device, "reason": "Memory saturated.", "evidence": [_latest_id(device)]},
     )
 
     assert record["action"] == "flag_device_for_replacement"
@@ -267,14 +267,14 @@ def test_notify_employee_approved_writes_one_line(paths):
     record, _, _ = _approve(
         paths,
         "notify_employee",
-        {"employee_id": employee, "message": "Libera espacio en tu disco.", "evidence": [_latest_id(device)]},
+        {"employee_id": employee, "message": "Free up space on your disk.", "evidence": [_latest_id(device)]},
     )
 
     assert record["action"] == "notify_employee"
     assert record["company_id"] == ACME
     assert record["employee_id"] == employee
     assert "device_id" not in record
-    assert record["message"] == "Libera espacio en tu disco."
+    assert record["message"] == "Free up space on your disk."
     assert [e["outcome"] for e in _lines(audit_path)] == ["approved"]
 
 
@@ -284,19 +284,19 @@ def test_rejected_action_writes_nothing_and_is_audited(paths):
     args = {
         "device_id": device,
         "check_id": "screen_lock",
-        "note": "Bloqueo de pantalla.",
+        "note": "Screen lock.",
         "evidence": [_latest_id(device)],
     }
-    graph, config, _ = _start([_call("open_remediation_ticket", args), AIMessage(content="No se abrió.")])
+    graph, config, _ = _start([_call("open_remediation_ticket", args), AIMessage(content="Not opened.")])
     assert _pending(graph, config)
 
-    final = graph.invoke(Command(resume={"approved": False, "reason": "esperar al lunes"}), config)
+    final = graph.invoke(Command(resume={"approved": False, "reason": "wait until Monday"}), config)
 
     assert not _outbox_has_records(outbox)
-    assert _tool_content(final) == {"status": "rejected", "reason": "esperar al lunes"}
+    assert _tool_content(final) == {"status": "rejected", "reason": "wait until Monday"}
     events = _lines(audit_path)
     assert [e["outcome"] for e in events] == ["rejected"]
-    assert events[0]["reason"] == "esperar al lunes"
+    assert events[0]["reason"] == "wait until Monday"
 
 
 # Refusals: no interrupt, nothing written, specific audit outcome

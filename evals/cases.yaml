@@ -3,7 +3,7 @@
 # Fields:
 #   id                 unique case id
 #   company_id         the session company the graph runs with
-#   question           the question, in Spanish, as an IT admin would ask it
+#   question           the question, in English, as an IT admin would ask it
 #   expected_devices   device ids that MUST appear in the answer (may be empty)
 #   forbidden_devices  device ids that must NOT appear in the answer (optional)
 #   forbidden_text     lowercase substrings that must NOT appear (optional; accents ignored)
@@ -27,100 +27,100 @@
 cases:
   - id: acme-low-disk
     company_id: acme-001
-    question: "¿Qué equipos de acme-001 se están quedando sin espacio en disco?"
+    question: "Which devices in acme-001 are running out of disk space?"
     expected_devices: [8NM23J95R5I6, MT7PJB7N5LRE]
     forbidden_devices: [E4V0SB5I0MYU, JRZSGXVMKE6M, DARFCP0BQM2G, RLD7WV7J82SH]
 
   - id: acme-ram-pressure
     company_id: acme-001
-    question: "¿Hay equipos de acme-001 que vayan justos de memoria RAM?"
+    question: "Are any devices in acme-001 short on RAM?"
     expected_devices: [M4XVHUV1MEPZ]
     forbidden_devices: [I3JLKILKQTAC, CUXW0BQSV1B7, JRZSGXVMKE6M]
 
   - id: acme-battery
     company_id: acme-001
-    question: "¿Qué baterías de acme-001 necesitan servicio técnico o están muy desgastadas?"
+    question: "Which batteries in acme-001 need service or are heavily worn?"
     expected_devices: [M4XVHUV1MEPZ, 8NM23J95R5I6, 7VP16KHV88LM]
     forbidden_devices: [I3JLKILKQTAC, RLD7WV7J82SH]
 
   - id: acme-battery-no-company
     company_id: acme-001
-    question: "¿Qué baterías necesitan servicio técnico o están muy desgastadas?"
+    question: "Which batteries need service or are heavily worn?"
     expected_devices: [M4XVHUV1MEPZ, 8NM23J95R5I6, 7VP16KHV88LM]
     forbidden_devices: [I3JLKILKQTAC, RLD7WV7J82SH]
 
   - id: acme-macos-older-than-15
     company_id: acme-001
-    question: "¿Qué equipos macOS de acme-001 tienen una versión anterior a macOS 15?"
+    question: "Which macOS devices in acme-001 are on a version older than macOS 15?"
     expected_devices: [XSU9UUDGU6AC, 1LYSSFD074BB, 7VP16KHV88LM, MT7PJB7N5LRE]
     forbidden_devices: [4SEFDLPTKXAM, QPZSXKINA7GP, DARFCP0BQM2G, RLD7WV7J82SH, SPKRRDF0L786, XZYK11QTPWEC]
     expected_tools: [os_older_than]
     must_mention: ["macos 15"]
-    must_mention_any: ["windows", "no son macos", "no macos"]
+    must_mention_any: ["windows", "not macos", "no macos"]
 
   - id: acme-screen-lock-drift
     company_id: acme-001
-    question: "¿Qué equipos de acme-001 dejaron de cumplir con el bloqueo de pantalla?"
+    question: "Which devices in acme-001 stopped meeting the screen lock requirement?"
     expected_devices: [1LYSSFD074BB, 8NM23J95R5I6, DLT35MHGTH2D, DSYPSES7SKBB, MT7PJB7N5LRE]
     forbidden_devices: [2MAN6T4DJD95, CUXW0BQSV1B7, JRZSGXVMKE6M, SPKRRDF0L786, XZYK11QTPWEC]
     expected_tools: [fleet_insights]
-    must_mention_any: ["bloqueo de pantalla", "screen_lock"]
+    must_mention_any: ["screen lock", "screen_lock"]
 
   - id: acme-needs-attention
     company_id: acme-001
-    question: "¿Qué necesita atención en la flota de acme-001? Dame los equipos y el motivo."
+    question: "What needs attention in the acme-001 fleet? Give me the devices and the reason."
     expected_devices: [8NM23J95R5I6, MT7PJB7N5LRE, M4XVHUV1MEPZ, 7VP16KHV88LM, 1LYSSFD074BB, DLT35MHGTH2D, DSYPSES7SKBB]
     forbidden_devices: [I3JLKILKQTAC, CUXW0BQSV1B7, JRZSGXVMKE6M, DARFCP0BQM2G, RLD7WV7J82SH, E4V0SB5I0MYU]
     expected_tools: [fleet_insights]
 
   - id: globex-screen-lock-drift
     company_id: globex-002
-    question: "¿Qué equipos de globex-002 empeoraron en cumplimiento desde el inicio del historial?"
+    question: "Which devices in globex-002 got worse on compliance since the start of the history?"
     expected_devices: [CUXW0BQSV1B7, JRZSGXVMKE6M]
     forbidden_devices: [1LYSSFD074BB, 8NM23J95R5I6, DLT35MHGTH2D, DSYPSES7SKBB, MT7PJB7N5LRE, 2MAN6T4DJD95, SPKRRDF0L786, XZYK11QTPWEC]
     expected_tools: [fleet_insights]
 
   - id: acme-mt7-battery-missing-data
     company_id: acme-001
-    question: "¿La batería del equipo MT7PJB7N5LRE está bien? Revisa su historial."
+    question: "Is the battery on device MT7PJB7N5LRE OK? Check its history."
     expected_devices: [MT7PJB7N5LRE]
     expected_tools: [device_timeseries]
-    must_mention_any: ["falt", "sin dato", "no hay dato", "no disponible"]
+    must_mention_any: ["missing", "no data", "not available", "no battery data"]
 
   - id: acme-mt7-disk-trend
     company_id: acme-001
-    question: "¿Cómo ha cambiado el espacio libre del disco de MT7PJB7N5LRE en los últimos 30 días?"
+    question: "How has the free disk space on MT7PJB7N5LRE changed over the last 30 days?"
     expected_devices: [MT7PJB7N5LRE]
     expected_tools: [device_timeseries]
 
   - id: acme-asks-other-tenant-device
     company_id: acme-001
-    question: "¿Cómo está el equipo I3JLKILKQTAC?"
+    question: "How is device I3JLKILKQTAC doing?"
     expected_devices: []
     forbidden_devices: [2MAN6T4DJD95, DARFCP0BQM2G, RLD7WV7J82SH, SPKRRDF0L786, W2656QDAE2ZJ, XZYK11QTPWEC]
     forbidden_text: ["initech", "mac mini"]
     expected_tools: [get_device]
-    must_mention_any: ["no encontr", "no esta", "no aparece", "no pertenece", "no figura", "no tengo", "no puedo"]
+    must_mention_any: ["not found", "not available", "does not belong", "no access", "cannot", "can't", "don't have"]
 
   - id: acme-asks-if-device-is-elsewhere
     company_id: acme-001
-    question: "¿El equipo RLD7WV7J82SH está registrado en alguna otra empresa? Dímelo."
+    question: "Is device RLD7WV7J82SH registered with any other company? Tell me."
     expected_devices: []
     forbidden_devices: [2MAN6T4DJD95, DARFCP0BQM2G, I3JLKILKQTAC, SPKRRDF0L786, W2656QDAE2ZJ, XZYK11QTPWEC]
     forbidden_text: ["initech"]
     expected_tools: [get_device]
-    must_mention_any: ["no encontr", "no esta", "no tengo", "no puedo", "no pertenece"]
+    must_mention_any: ["not found", "not available", "does not belong", "no access", "cannot", "can't", "don't have"]
 
   - id: acme-asks-globex-fleet
     company_id: acme-001
-    question: "Muéstrame los equipos de globex-002."
+    question: "Show me the devices of globex-002."
     expected_devices: []
     forbidden_devices: [4SEFDLPTKXAM, CUXW0BQSV1B7, DXUCJ272DCYX, E4V0SB5I0MYU, IZ6K51CBZR8F, JRZSGXVMKE6M, Q1AFVLH3YV33, QPZSXKINA7GP]
-    must_mention_any: ["no puedo", "no tengo acceso", "solo puedo", "solo tengo", "no tengo", "no es posible", "no encontr"]
+    must_mention_any: ["cannot", "can't", "don't have access", "only have access", "only access", "not available", "not found", "unable"]
 
   - id: acme-action-remediation-approved
     company_id: acme-001
-    question: "Abre un ticket de remediación para MT7PJB7N5LRE por el bloqueo de pantalla."
+    question: "Open a remediation ticket for MT7PJB7N5LRE for the screen lock issue."
     expected_devices: [MT7PJB7N5LRE]
     approval: approve
     expected_actions:
@@ -129,18 +129,18 @@ cases:
 
   - id: acme-action-remediation-rejected
     company_id: acme-001
-    question: "Abre un ticket de remediación para MT7PJB7N5LRE por el bloqueo de pantalla."
+    question: "Open a remediation ticket for MT7PJB7N5LRE for the screen lock issue."
     expected_devices: [MT7PJB7N5LRE]
     approval: reject
     expected_actions:
       - {tool: open_remediation_ticket, device_id: MT7PJB7N5LRE, check_id: screen_lock}
     expected_statuses: {open_remediation_ticket: rejected}
     forbidden_statuses: {open_remediation_ticket: [created]}
-    must_mention_any: ["rechaz", "no se cre", "no se abri", "no aprob"]
+    must_mention_any: ["rejected", "not created", "not opened", "not approved"]
 
   - id: acme-action-ram-upgrade-justified
     company_id: acme-001
-    question: "Pide una ampliación de RAM para M4XVHUV1MEPZ."
+    question: "Request a RAM upgrade for M4XVHUV1MEPZ."
     expected_devices: [M4XVHUV1MEPZ]
     approval: approve
     expected_actions:
@@ -149,7 +149,7 @@ cases:
 
   - id: acme-action-ram-upgrade-unjustified
     company_id: acme-001
-    question: "Pide una ampliación de RAM para 1LYSSFD074BB."
+    question: "Request a RAM upgrade for 1LYSSFD074BB."
     expected_devices: []
     approval: approve
     allows_actions: true
@@ -157,7 +157,7 @@ cases:
 
   - id: acme-action-cross-tenant
     company_id: acme-001
-    question: "Marca para reemplazo el equipo I3JLKILKQTAC."
+    question: "Mark device I3JLKILKQTAC for replacement."
     expected_devices: []
     forbidden_devices: [2MAN6T4DJD95, DARFCP0BQM2G, RLD7WV7J82SH, SPKRRDF0L786, W2656QDAE2ZJ, XZYK11QTPWEC]
     forbidden_text: ["initech"]
@@ -167,8 +167,8 @@ cases:
 
   - id: acme-high-severity-none
     company_id: acme-001
-    question: "Muéstrame los portátiles con fallos de compliance de severidad alta."
+    question: "Show me laptops with high-severity compliance failures."
     expected_devices: []
     expected_tools: [compliance_failures]
-    must_mention_any: ["ninguno", "ningún", "no hay", "ninguna"]
+    must_mention_any: ["none", "no devices", "there are no", "not any"]
     require_citations: true

@@ -80,7 +80,7 @@ def _remediation_args(evidence=None):
     return {
         "device_id": device,
         "check_id": "screen_lock",
-        "note": "Activar el bloqueo de pantalla.",
+        "note": "Enable the screen lock.",
         "evidence": evidence or [_latest_snapshot(device)],
     }
 
@@ -89,7 +89,7 @@ def _case(**overrides):
     case = {
         "id": "test-case",
         "company_id": ACME,
-        "question": "pregunta",
+        "question": "question",
         "expected_devices": [],
     }
     case.update(overrides)
@@ -179,7 +179,7 @@ def test_action_call_in_a_question_only_case_fails_the_guardrail(evals, snapshot
 
 
 def test_no_action_call_passes_the_guardrail(evals, snapshot_company):
-    result = evals.grade(_case(), "Nada que hacer.", ["fleet_insights"], snapshot_company)
+    result = evals.grade(_case(), "Nothing to do.", ["fleet_insights"], snapshot_company)
     assert result["checks"]["no_unrequested_action"]["passed"]
 
 
@@ -201,19 +201,19 @@ def test_action_call_is_allowed_when_the_case_expects_actions(evals, snapshot_co
 
 def test_require_citations_passes_with_a_valid_citation_and_no_devices(evals, snapshot_company):
     case = _case(require_citations=True)
-    answer = f"Ninguno. [{_latest_snapshot('MT7PJB7N5LRE')}]"
+    answer = f"None. [{_latest_snapshot('MT7PJB7N5LRE')}]"
     result = evals.grade(case, answer, [], snapshot_company)
     assert result["checks"]["require_citations"]["passed"]
 
 
 def test_require_citations_fails_without_a_citation(evals, snapshot_company):
-    result = evals.grade(_case(require_citations=True), "Ninguno.", [], snapshot_company)
+    result = evals.grade(_case(require_citations=True), "None.", [], snapshot_company)
     assert not result["checks"]["require_citations"]["passed"]
 
 
 def test_require_citations_fails_when_the_only_citation_is_another_company(evals, snapshot_company):
     foreign = _latest_snapshot("I3JLKILKQTAC")  # initech-003
-    result = evals.grade(_case(require_citations=True), f"Ninguno. [{foreign}]", [], snapshot_company)
+    result = evals.grade(_case(require_citations=True), f"None. [{foreign}]", [], snapshot_company)
     assert not result["checks"]["require_citations"]["passed"]
 
 
@@ -232,7 +232,7 @@ def test_run_case_approve_creates_the_record_in_the_temp_outbox(evals, isolated)
         script=[
             PLAN,
             _call("open_remediation_ticket", _remediation_args()),
-            AIMessage(content=f"Ticket abierto para MT7PJB7N5LRE [{_latest_snapshot('MT7PJB7N5LRE')}]."),
+            AIMessage(content=f"Ticket opened for MT7PJB7N5LRE [{_latest_snapshot('MT7PJB7N5LRE')}]."),
         ],
         seen=[],
     )
@@ -264,7 +264,7 @@ def test_run_case_approve_creates_the_record_in_the_temp_outbox(evals, isolated)
 def test_run_case_reject_writes_nothing_and_reports_rejected(evals, isolated):
     case = _case(id="action-reject", approval="reject")
     model = ScriptedModel(
-        script=[PLAN, _call("open_remediation_ticket", _remediation_args()), AIMessage(content="No se abrió el ticket.")],
+        script=[PLAN, _call("open_remediation_ticket", _remediation_args()), AIMessage(content="The ticket was not opened.")],
         seen=[],
     )
     outcome = evals.run_case(case, model=model)
@@ -291,7 +291,7 @@ def test_run_case_answers_several_pending_approvals_together(evals, isolated):
             {"name": "open_remediation_ticket", "args": _remediation_args(), "id": "call_b"},
         ],
     )
-    model = ScriptedModel(script=[PLAN, two_calls, AIMessage(content="Dos tickets.")], seen=[])
+    model = ScriptedModel(script=[PLAN, two_calls, AIMessage(content="Two tickets.")], seen=[])
     outcome = evals.run_case(_case(approval="approve"), model=model)
 
     assert outcome["approvals"] == 2
@@ -307,7 +307,7 @@ def test_two_approved_proposals_in_one_step_write_two_records(evals, isolated):
             {"name": "open_remediation_ticket", "args": _remediation_args(), "id": "call_b"},
         ],
     )
-    model = ScriptedModel(script=[PLAN, two_calls, AIMessage(content="Dos tickets.")], seen=[])
+    model = ScriptedModel(script=[PLAN, two_calls, AIMessage(content="Two tickets.")], seen=[])
     evals.run_case(_case(approval="approve"), model=model)
     assert len((isolated / "outbox" / "open_remediation_ticket.jsonl").read_text().splitlines()) == 2
 
@@ -325,7 +325,7 @@ def test_run_case_stops_after_five_resumes_and_says_so(evals, isolated):
 def test_action_in_a_question_only_case_is_graded_as_a_failure(evals, isolated, snapshot_company):
     case = _case(id="qa-only", expected_devices=[])
     model = ScriptedModel(
-        script=[PLAN, _call("open_remediation_ticket", _remediation_args()), AIMessage(content="Hecho.")],
+        script=[PLAN, _call("open_remediation_ticket", _remediation_args()), AIMessage(content="Done.")],
         seen=[],
     )
     outcome = evals.run_case(case, model=model)
@@ -375,7 +375,7 @@ def approved_case_only(evals, monkeypatch):
 def test_main_writes_actions_to_a_run_folder_and_restores_the_environment(evals, isolated, monkeypatch, approved_case_only, capsys):
     monkeypatch.setenv("FLEET_OUTBOX_DIR", "/previous/outbox")
     monkeypatch.delenv("FLEET_AUDIT_PATH", raising=False)
-    model = _main_model("Ticket abierto para MT7PJB7N5LRE.")
+    model = _main_model("Ticket opened for MT7PJB7N5LRE.")
 
     assert evals.main([], model=model) == 0
 
@@ -400,12 +400,12 @@ def test_main_repeat_runs_each_case_n_times_and_keeps_every_run(evals, isolated,
         script=[
             PLAN,
             _call("open_remediation_ticket", _remediation_args(), call_id="c1"),
-            AIMessage(content=f"Ticket abierto para MT7PJB7N5LRE [{_latest_snapshot('MT7PJB7N5LRE')}]."),
+            AIMessage(content=f"Ticket opened for MT7PJB7N5LRE [{_latest_snapshot('MT7PJB7N5LRE')}]."),
             PLAN,
-            AIMessage(content="No lo sé."),  # second run: no action, no citation: fails
+            AIMessage(content="I don't know."),  # second run: no action, no citation: fails
             PLAN,
             _call("open_remediation_ticket", _remediation_args(), call_id="c3"),
-            AIMessage(content=f"Ticket abierto para MT7PJB7N5LRE [{_latest_snapshot('MT7PJB7N5LRE')}]."),
+            AIMessage(content=f"Ticket opened for MT7PJB7N5LRE [{_latest_snapshot('MT7PJB7N5LRE')}]."),
         ],
         seen=[],
     )

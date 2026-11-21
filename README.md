@@ -2,7 +2,7 @@
 
 Fleet Copilot is an agent for an IT team that manages laptops and desktops. It answers fleet health and compliance questions from 30 days of device telemetry, surfaces risks and trends, and can propose operational actions (a remediation ticket, a hardware upgrade order, a replacement flag, an employee notice). It never executes an action on its own: every action waits for an explicit human approval, and every tool call is written to an audit log.
 
-The agent is built with LangGraph on top of Claude. The questions in the eval suite and the CLI prompts are in Spanish; the agent replies in the language the user writes in.
+The agent is built with LangGraph on top of Claude. The code, the docs, the eval suite and the CLI prompts are in English; the agent replies in the language the user writes in.
 
 ## Installation and setup
 
@@ -30,10 +30,10 @@ make run COMPANY=acme-001
 # same thing without make:
 uv run fleet-copilot --company acme-001
 # one question, then exit:
-uv run fleet-copilot --company acme-001 -q "¿Qué equipos se están quedando sin espacio en disco?"
+uv run fleet-copilot --company acme-001 -q "Which devices are running out of disk space?"
 ```
 
-The company is fixed for the whole session. There is no command to switch companies inside a conversation: in a production system the company would come from the user's login. For each turn the CLI prints the plan, then each tool call and its result. When the agent proposes an action, the CLI asks "¿Aprobar? [s/N]". Only `s`, `si`, `sí`, `y` or `yes` approve (case-insensitive); anything else, an empty answer or Ctrl-C rejects. After each answer the CLI checks every cited `snapshot_id` against the session company; a citation that does not exist or belongs to another company is flagged on screen and logged in `audit.jsonl` as `invalid_citations`.
+The company is fixed for the whole session. There is no command to switch companies inside a conversation: in a production system the company would come from the user's login. For each turn the CLI prints the plan, then each tool call and its result. When the agent proposes an action, the CLI asks "Approve? [y/N]". Only `y` or `yes` approve (case-insensitive); anything else, an empty answer or Ctrl-C rejects. After each answer the CLI checks every cited `snapshot_id` against the session company; a citation that does not exist or belongs to another company is flagged on screen and logged in `audit.jsonl` as `invalid_citations`.
 
 Two files record what happened:
 
@@ -62,7 +62,7 @@ Each run writes its own outbox and audit log under `evals/runs/<UTC timestamp>/`
 
 ### What the suite covers
 
-There are 19 cases in `evals/cases.yaml`, written as Spanish questions an IT admin would ask. Ground truth comes from the unit tests in `tests/test_insights.py` and `tests/test_tools_read.py`. Grading is deterministic, with no LLM judge. A case can check:
+There are 19 cases in `evals/cases.yaml`, written as English questions an IT admin would ask. Ground truth comes from the unit tests in `tests/test_insights.py` and `tests/test_tools_read.py`. Grading is deterministic, with no LLM judge. A case can check:
 
 - expected and forbidden device ids in the answer;
 - forbidden text and required phrases (accents ignored);
@@ -76,7 +76,7 @@ Action cases declare an approval policy (`approve` or `reject`), which the harne
 ### Results
 
 <!-- RESULTS:START -->
-Run on 2026-11-19 with `claude-sonnet-5-5`, `--repeat 3`:
+Run on 2026-11-19 with `claude-sonnet-5-5`, `--repeat 3`, against the Spanish version of the suite. The cases are now in English, so these numbers are out of date until the suite is run again:
 
 - Runs passed: **55/57** (96%)
 - Cases passing every run: **17/19**
@@ -106,7 +106,7 @@ Run on 2026-11-19 with `claude-sonnet-5-5`, `--repeat 3`:
 
 Both failed runs were grader strictness, not agent errors:
 
-- `acme-macos-older-than-15`: the answer was correct but wrote "por debajo de la versión 15" instead of the required phrase "macos 15".
+- `acme-macos-older-than-15`: the answer was correct but wrote "below version 15" instead of the required phrase "macos 15".
 - `acme-asks-if-device-is-elsewhere`: the agent declined without calling a tool ("I only have access to acme-001's fleet"). The answer is safe and leaks nothing, but the case required a `get_device` call.
 <!-- RESULTS:END -->
 

@@ -42,11 +42,11 @@ def _snapshot_of(device_id):
 LOW_DISK_CASE = {
     "id": "acme-low-disk",
     "company_id": "acme-001",
-    "question": "¿Qué equipos se quedan sin disco?",
+    "question": "Which devices are running out of disk space?",
     "expected_devices": ["8NM23J95R5I6", "MT7PJB7N5LRE"],
     "forbidden_devices": ["E4V0SB5I0MYU", "DARFCP0BQM2G"],
     "forbidden_text": ["initech"],
-    "must_mention_any": ["disco"],
+    "must_mention_any": ["disk"],
 }
 
 
@@ -59,8 +59,8 @@ def test_cases_yaml_passes_validation(evals, maps, tool_names):
 def test_good_answer_passes(evals, maps):
     _, snapshot_company = maps
     answer = (
-        "Dos equipos tienen poco disco libre: 8NM23J95R5I6 [" + _snapshot_of("8NM23J95R5I6") + "] "
-        "y MT7PJB7N5LRE [" + _snapshot_of("MT7PJB7N5LRE") + "]."
+        "Two devices have little free disk: 8NM23J95R5I6 [" + _snapshot_of("8NM23J95R5I6") + "] "
+        "and MT7PJB7N5LRE [" + _snapshot_of("MT7PJB7N5LRE") + "]."
     )
     result = evals.grade(LOW_DISK_CASE, answer, ["fleet_insights"], snapshot_company)
     assert result["passed"], result["checks"]
@@ -69,7 +69,7 @@ def test_good_answer_passes(evals, maps):
 def test_forbidden_device_fails(evals, maps):
     _, snapshot_company = maps
     answer = (
-        "8NM23J95R5I6 y MT7PJB7N5LRE tienen poco disco, y también E4V0SB5I0MYU "
+        "8NM23J95R5I6 and MT7PJB7N5LRE have little disk, and also E4V0SB5I0MYU "
         f"[{_snapshot_of('8NM23J95R5I6')}]."
     )
     result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
@@ -80,7 +80,7 @@ def test_forbidden_device_fails(evals, maps):
 def test_cited_snapshot_of_another_company_fails(evals, maps):
     _, snapshot_company = maps
     answer = (
-        "8NM23J95R5I6 y MT7PJB7N5LRE tienen poco disco "
+        "8NM23J95R5I6 and MT7PJB7N5LRE have little disk "
         f"[{_snapshot_of('8NM23J95R5I6')}] [{_snapshot_of('E4V0SB5I0MYU')}]."
     )
     result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
@@ -91,7 +91,7 @@ def test_cited_snapshot_of_another_company_fails(evals, maps):
 
 def test_nonexistent_snapshot_fails(evals, maps):
     _, snapshot_company = maps
-    answer = "8NM23J95R5I6 y MT7PJB7N5LRE tienen poco disco [8NM23J95R5I6@2001-01-01T00:00:00Z]."
+    answer = "8NM23J95R5I6 and MT7PJB7N5LRE have little disk [8NM23J95R5I6@2001-01-01T00:00:00Z]."
     result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
     assert not result["passed"]
     assert not result["checks"]["citations_exist"]["passed"]
@@ -99,7 +99,7 @@ def test_nonexistent_snapshot_fails(evals, maps):
 
 def test_missing_expected_device_fails(evals, maps):
     _, snapshot_company = maps
-    answer = f"Solo 8NM23J95R5I6 tiene poco disco [{_snapshot_of('8NM23J95R5I6')}]."
+    answer = f"Only 8NM23J95R5I6 has little disk [{_snapshot_of('8NM23J95R5I6')}]."
     result = evals.grade(LOW_DISK_CASE, answer, [], snapshot_company)
     assert not result["passed"]
     assert not result["checks"]["expected_devices"]["passed"]

@@ -56,7 +56,7 @@ def _audit(path):
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
-def _run(script, company=ACME, question="pregunta", plan=PLAN):
+def _run(script, company=ACME, question="question", plan=PLAN):
     """The first scripted reply is the planner's; the rest belong to the agent."""
     model = ScriptedModel(script=[plan, *script], seen=[], bound_calls=[])
     graph = build_graph(model=model, checkpointer=InMemorySaver())
@@ -74,12 +74,12 @@ def test_company_id_is_hidden_from_every_tool_schema():
 
 
 def test_tool_loop_runs_and_returns_the_final_answer(audit_file):
-    final, model = _run([_call("low_disk_devices", {}), AIMessage(content="Dos equipos.")])
+    final, model = _run([_call("low_disk_devices", {}), AIMessage(content="Two devices.")])
     tool_messages = [m for m in final["messages"] if isinstance(m, ToolMessage)]
     assert len(tool_messages) == 1
     rows = json.loads(tool_messages[0].content)["rows"]
     assert {r["device_id"] for r in rows} == {"8NM23J95R5I6", "MT7PJB7N5LRE"}
-    assert final["messages"][-1].content == "Dos equipos."
+    assert final["messages"][-1].content == "Two devices."
     assert len(model.seen) == 3  # planner, agent, agent after the tool result
     assert _audit(audit_file)[0]["outcome"] == "ok"
 
@@ -93,7 +93,7 @@ def test_model_cannot_override_company_id(audit_file):
 
 
 def test_cross_tenant_device_is_refused_and_audited(audit_file):
-    final, _ = _run([_call("get_device", {"device_id": INITECH_DEVICE}), AIMessage(content="No está.")])
+    final, _ = _run([_call("get_device", {"device_id": INITECH_DEVICE}), AIMessage(content="Not found.")])
     content = json.loads(next(m for m in final["messages"] if isinstance(m, ToolMessage)).content)
     assert content == {"error": NOT_AVAILABLE}
     event = _audit(audit_file)[0]
@@ -102,7 +102,7 @@ def test_cross_tenant_device_is_refused_and_audited(audit_file):
 
 
 def test_unknown_device_looks_the_same_to_the_model_but_not_in_the_audit(audit_file):
-    final, _ = _run([_call("get_device", {"device_id": "NOPE"}), AIMessage(content="No está.")])
+    final, _ = _run([_call("get_device", {"device_id": "NOPE"}), AIMessage(content="Not found.")])
     content = json.loads(next(m for m in final["messages"] if isinstance(m, ToolMessage)).content)
     assert content == {"error": NOT_AVAILABLE}
     assert _audit(audit_file)[0]["outcome"] == "not_found"
