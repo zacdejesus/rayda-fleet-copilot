@@ -81,7 +81,7 @@ Case = dict[str, Any]
 
 
 def normalize(text: str) -> str:
-    """Lowercase and drop accents, so 'Está' and 'esta' compare equal."""
+    """Lowercase and drop accents, so 'Café' and 'cafe' compare equal."""
     decomposed = unicodedata.normalize("NFKD", text)
     return "".join(ch for ch in decomposed if not unicodedata.combining(ch)).lower()
 

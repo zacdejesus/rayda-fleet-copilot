@@ -16,24 +16,24 @@ def _companies() -> list[str]:
     return sorted(load_snapshots()["company_id"].unique())
 
 
-APPROVE_ANSWERS = {"s", "si", "sí", "y", "yes"}
+APPROVE_ANSWERS = {"y", "yes"}
 
 
 def _review(payload: dict) -> dict:
     """Show a proposed write and ask the human. Returns the resume value for the graph."""
     proposal = payload["proposal"]
-    print(f"\nAcción propuesta ({payload['action']}):", file=sys.stderr)
+    print(f"\nProposed action ({payload['action']}):", file=sys.stderr)
     for key, value in proposal.items():
         if key == "evidence":
             value = ", ".join(value)
         print(f"  {key}: {value}", file=sys.stderr)
     try:
-        if input("¿Aprobar? [s/N] ").strip().lower() in APPROVE_ANSWERS:
+        if input("Approve? [y/N] ").strip().lower() in APPROVE_ANSWERS:
             return {"approved": True}
-        reason = input("Motivo (opcional): ").strip()
+        reason = input("Reason (optional): ").strip()
     except (EOFError, KeyboardInterrupt):
         print(file=sys.stderr)
-        return {"approved": False, "reason": "sin respuesta"}
+        return {"approved": False, "reason": "no answer"}
     return {"approved": False, "reason": reason}
 
 
@@ -98,21 +98,21 @@ def main(argv: list[str] | None = None) -> None:
         bad = invalid_citations(text, args.company)
         if not bad:
             return
-        print(f"  ! Citas no verificables en esta respuesta: {', '.join(bad)}", file=sys.stderr)
+        print(f"  ! Citations that could not be verified in this answer: {', '.join(bad)}", file=sys.stderr)
         audit.record({"company_id": args.company, "tool": "citation_check", "outcome": "invalid_citations", "citations": bad})
 
     if args.question:
         ask(args.question)
         return
 
-    print("Escribe una pregunta. Ctrl-D o 'salir' para terminar.", file=sys.stderr)
+    print("Type a question. Ctrl-D or 'exit' to quit.", file=sys.stderr)
     while True:
         try:
             question = input("\n> ").strip()
         except (EOFError, KeyboardInterrupt):
             print(file=sys.stderr)
             return
-        if question.lower() in {"salir", "exit", "quit"}:
+        if question.lower() in {"exit", "quit"}:
             return
         if question:
             ask(question)
